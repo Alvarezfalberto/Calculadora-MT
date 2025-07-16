@@ -55,7 +55,7 @@ factores_tabla = {
 if 'resultados' not in st.session_state:
     st.session_state.resultados = []
 
-st.title("Calculadora de Líneas de Media Tensión")
+st.title("Calculadora de Líneas de Media Tensión subterráneas")
 
 # Paso 1: Introducir datos y calcular sección mínima
 with st.form("form_datos"):
