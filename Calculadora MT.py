@@ -62,80 +62,92 @@ overhead_data_Cu = {
     300:{"Ia": 780, "R": 0.034, "X": 0.23},
 }
 
-# Inicializar resultados en session_state
+# Inicializar resultados
 if 'resultados' not in st.session_state:
     st.session_state.resultados = []
 
 st.title("Calculadora de Líneas de Media Tensión")
 
-# Sidebar de entrada de datos
-with st.sidebar:
-    st.header("Datos del tramo")
-    cos_phi = st.number_input("cos φ", min_value=0.0, max_value=1.0, value=0.9, step=0.01)
-    tipo = st.selectbox("Sistema", ["trifasico", "monofasico"])
-    V_kV = st.number_input("Tensión (kV)", value=20.0, step=0.1)
-    ID_tramo = st.text_input("ID Tramo")
-    L_m = st.number_input("Longitud (m)", value=1000.0, step=1.0)
-    Pn_MW = st.number_input("Potencia Pn (MW)", value=1.0, step=0.1)
+# Sidebar: orden y grupos solicitados
+st.sidebar.header("Configuración del cable")
+instal = st.sidebar.selectbox("Instalación", ["subterraneo", "aereo"])
+material = st.sidebar.selectbox("Material", ["Al", "Cu"])
 
-    st.subheader("Factores de corrección")
-    Ca = st.number_input("Ca (Temp ambiente)", value=1.0, step=0.01)
-    Cd = st.number_input("Cd (Agrupamiento)", value=1.0, step=0.01)
-    Ci = st.number_input("Ci (Instal. interior)", value=1.0, step=0.01)
-    Cg = st.number_input("Cg (Suelo)", value=1.0, step=0.01)
+st.sidebar.header("Datos del tramo")
+cos_phi = st.sidebar.number_input("cos φ", min_value=0.0, max_value=1.0, value=0.9, step=0.01)
+tipo = st.sidebar.selectbox("Sistema", ["trifasico", "monofasico"])
+V_kV = st.sidebar.number_input("Tensión (kV)", value=20.0, step=0.1)
+ID_tramo = st.sidebar.text_input("ID Tramo")
+Pn_MW = st.sidebar.number_input("Potencia Pn (MW)", value=1.0, step=0.1)
+L_m = st.sidebar.number_input("Longitud (m)", value=1000.0, step=1.0)
 
-    instal = st.selectbox("Instalación", ["subterraneo", "aereo"])
-    material = st.selectbox("Material", ["Al", "Cu"])
+st.sidebar.header("Factores de corrección")
+Ca = st.sidebar.number_input("Ca (Temp ambiente)", value=1.0, step=0.01)
+Cd = st.sidebar.number_input("Cd (Agrupamiento)", value=1.0, step=0.01)
+Ci = st.sidebar.number_input("Ci (Instal. interior)", value=1.0, step=0.01)
+Cg = st.sidebar.number_input("Cg (Suelo)", value=1.0, step=0.01)
 
-    st.markdown("---")
-    if st.button("Calcular tramo"):
-        # Cálculo de In
-        k_total = Ca * Cd * Ci * Cg
-        Pn_W = Pn_MW * 1e6
-        if tipo == "trifasico":
-            In = Pn_W / (math.sqrt(3) * V_kV * 1000 * cos_phi)
+# Paso 1: recomendar sección
+if st.sidebar.button("Recomendar sección"):
+    # Ajuste para aéreo
+    Cg_eff = 1.0 if instal == "aereo" else Cg
+    k_total = Ca * Cd * Ci * Cg_eff
+    Pn_W = Pn_MW * 1e6
+    In = (Pn_W / (math.sqrt(3) * V_kV * 1000 * cos_phi)
+          if tipo == "trifasico"
+          else Pn_W / (V_kV * 1000 * cos_phi))
+    # Selección de diccionario
+    if instal == "aereo":
+        data_dict = overhead_data_Al if material == "Al" else overhead_data_Cu
+    else:
+        data_dict = cable_data_sub_Al if material == "Al" else cable_data_sub_Cu
+    # Sección mínima
+    rec = next((s for s in sorted(data_dict) if data_dict[s]["Ia"] * k_total >= In), None)
+    rec = rec or max(data_dict)
+    # Guardar contexto en session_state
+    st.session_state.rec = rec
+    st.session_state.data_dict = data_dict
+    st.session_state.In = In
+    st.session_state.k_total = k_total
+    st.success(f"Sección mínima recomendada: {rec} mm²")
+
+# Paso 2: elegir sección y calcular tramo
+if 'rec' in st.session_state:
+    st.subheader("Selección de sección")
+    rec = st.session_state.rec
+    data_dict = st.session_state.data_dict
+    options = [s for s in data_dict if s >= rec]
+    sec = st.selectbox("Sección (mm²)", options, index=0)
+    if st.button("Calcular tramo final"):
+        # Validar corriente admisible
+        Ia_corr = data_dict[sec]["Ia"] * st.session_state.k_total
+        if Ia_corr < st.session_state.In:
+            st.error(f"In = {st.session_state.In:.1f} A > Iac = {Ia_corr:.1f} A. "
+                     "Seleccione una sección mayor.")
         else:
-            In = Pn_W / (V_kV * 1000 * cos_phi)
+            # Cálculos finales
+            sin_phi = math.sqrt(1 - cos_phi**2)
+            Kd, Kl = (math.sqrt(3), 3) if tipo == "trifasico" else (2, 2)
+            deltaU_pct = (Kd * st.session_state.In * 
+                          (data_dict[sec]["R"] * cos_phi + data_dict[sec]["X"] * sin_phi) * (L_m/1000)) \
+                         / (V_kV * 1000) * 100
+            P_perd_W = Kl * st.session_state.In**2 * data_dict[sec]["R"] * (L_m/1000)
+            Ppn_kW = P_perd_W / 1000
+            Pperd_pct = (P_perd_W / Pn_W) * 100 if Pn_W else 0
 
-        # Selección de biblioteca
-        if instal == "aereo":
-            data_dict = overhead_data_Al if material == "Al" else overhead_data_Cu
-            Cg = 1.0  # forzar Cg=1 para aéreo
-        else:
-            data_dict = cable_data_sub_Al if material == "Al" else cable_data_sub_Cu
-
-        # Sección recomendada
-        rec = next((s for s, d in sorted(data_dict.items()) if d["Ia"] * k_total >= In), None)
-        rec = rec or max(data_dict)
-        sec = st.selectbox("Sección seleccionada (mm²)", options=list(data_dict.keys()), index=list(data_dict.keys()).index(rec))
-
-        # Comprobación de sección suficiente
-        Ia_corr = data_dict[sec]["Ia"] * k_total
-        if Ia_corr < In:
-            st.error(f"Corriente nominal insuficiente: In={In:.1f} A > Iac={Ia_corr:.1f} A. "
-                     "Por favor, seleccione una sección mayor.")
-            st.stop()
-
-        # Cálculos finales
-        data = data_dict[sec]
-        sin_phi = math.sqrt(1 - cos_phi**2)
-        Kd, Kl = (math.sqrt(3), 3) if tipo == "trifasico" else (2, 2)
-        deltaU_pct = (Kd * In * (data["R"] * cos_phi + data["X"] * sin_phi) * (L_m/1000)) / (V_kV * 1000) * 100
-        P_perd_W = Kl * In**2 * data["R"] * (L_m/1000)
-        Ppn_kW = P_perd_W / 1000
-        Pperd_pct = (P_perd_W / Pn_W) * 100 if Pn_W else 0
-
-        # Añadir resultado
-        st.session_state.resultados.append({
-            "ID": ID_tramo,
-            "Sección (mm²)": sec,
-            "In (A)": f"{In:.1f}",
-            "Iac (A)": f"{Ia_corr:.1f}",
-            "ΔU (%)": f"{deltaU_pct:.3f}",
-            "Pérdida (W)": f"{P_perd_W:.0f}",
-            "Ppn (kW)": f"{Ppn_kW:.2f}",
-            "Pperd (%)": f"{Pperd_pct:.3f}"
-        })
+            # Añadir resultado
+            st.session_state.resultados.append({
+                "ID": ID_tramo,
+                "Sección (mm²)": sec,
+                "In (A)": f"{st.session_state.In:.1f}",
+                "Iac (A)": f"{Ia_corr:.1f}",
+                "ΔU (%)": f"{deltaU_pct:.3f}",
+                "Pérdida (W)": f"{P_perd_W:.0f}",
+                "Ppn (kW)": f"{Ppn_kW:.2f}",
+                "Pperd (%)": f"{Pperd_pct:.3f}"
+            })
+            # Limpiar recomendación para nueva iteración
+            del st.session_state.rec
 
 # Mostrar resultados acumulados
 if st.session_state.resultados:
