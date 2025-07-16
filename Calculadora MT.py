@@ -109,9 +109,15 @@ with st.sidebar:
         rec = rec or max(data_dict)
         sec = st.selectbox("Sección seleccionada (mm²)", options=list(data_dict.keys()), index=list(data_dict.keys()).index(rec))
 
+        # Comprobación de sección suficiente
+        Ia_corr = data_dict[sec]["Ia"] * k_total
+        if Ia_corr < In:
+            st.error(f"Corriente nominal insuficiente: In={In:.1f} A > Iac={Ia_corr:.1f} A. "
+                     "Por favor, seleccione una sección mayor.")
+            st.stop()
+
         # Cálculos finales
         data = data_dict[sec]
-        Iac = data["Ia"] * k_total
         sin_phi = math.sqrt(1 - cos_phi**2)
         Kd, Kl = (math.sqrt(3), 3) if tipo == "trifasico" else (2, 2)
         deltaU_pct = (Kd * In * (data["R"] * cos_phi + data["X"] * sin_phi) * (L_m/1000)) / (V_kV * 1000) * 100
@@ -122,9 +128,9 @@ with st.sidebar:
         # Añadir resultado
         st.session_state.resultados.append({
             "ID": ID_tramo,
-            "Seccion": sec,
+            "Sección (mm²)": sec,
             "In (A)": f"{In:.1f}",
-            "Iac (A)": f"{Iac:.1f}",
+            "Iac (A)": f"{Ia_corr:.1f}",
             "ΔU (%)": f"{deltaU_pct:.3f}",
             "Pérdida (W)": f"{P_perd_W:.0f}",
             "Ppn (kW)": f"{Ppn_kW:.2f}",
@@ -136,15 +142,5 @@ if st.session_state.resultados:
     st.subheader("Resultados por tramo")
     st.table(st.session_state.resultados)
 
-# Mostrar tablas de factores de corrección en un expander
-with st.expander("Tablas de Factores de Corrección"):
-    st.write("Ca (Temp ambiente):")
-    st.write(f"- 15°C → 1.08  | 20°C → 1.04  | 25°C → 1.00  | 30°C → 0.94  | 35°C → 0.88  | 40°C → 0.82")
-    st.write("Cd (Agrupamiento):")
-    st.write(f"- 1 cable → 1.00  | 2 cables → 0.80  | 3 cables → 0.70  | 4 cables → 0.65")
-    st.write("Ci (Instal. interior):")
-    st.write(f"- Conducto ventilado → 1.00  | Conducto no ventilado → 0.90  | Canaleta → 0.75  | Empotrado → 0.50")
-    st.write("Cg (Suelo):")
-    st.write(f"- 50 Ω·m → 1.00  | 100 Ω·m → 0.92  | 150 Ω·m → 0.85  | 200 Ω·m → 0.80")
 
 
