@@ -11,9 +11,8 @@
 
 import streamlit as st
 import math
-import pandas as pd
 
-# Bibliotecas de cables subterráneos (solo)
+# Datos de cables subterráneos (Al y Cu)
 cable_data_sub_Al = {
     50: {"Ia": 130, "R": 0.8180, "X": 0.24},
     70: {"Ia": 160, "R": 0.5650, "X": 0.23},
@@ -40,7 +39,7 @@ cable_data_sub_Cu = {
     400:{"Ia": 665, "R": 0.0450, "X": 0.13},
 }
 
-# Tablas de factores de corrección (Prysmian)
+# Factores de corrección (tabla Prysmian)
 factores_tabla = {
     'Ca': [('15°C', 1.08), ('20°C', 1.04), ('25°C', 1.00),
            ('30°C', 0.94), ('35°C', 0.88), ('40°C', 0.82)],
@@ -52,49 +51,42 @@ factores_tabla = {
            ('150 Ω·m', 0.85), ('200 Ω·m', 0.80)],
 }
 
-# Iniciar resultados
+# Inicializar resultados
 if 'resultados' not in st.session_state:
     st.session_state.resultados = []
 
 st.title("Calculadora de Líneas de Media Tensión")
 
-# Paso 1: Introduce datos y calcula sección mínima
+# Paso 1: Introducir datos y calcular sección mínima
 with st.form("form_datos"):
     st.header("Paso 1: Datos del tramo")
     material = st.selectbox("Material conductor", ["Al", "Cu"])
-    cos_phi  = st.number_input("cos φ", min_value=0.0, max_value=1.0,
+    cos_phi  = st.number_input("Factor de potencia (cos φ)", min_value=0.0, max_value=1.0,
                                value=0.9, step=0.01)
     tipo     = st.selectbox("Sistema", ["trifasico", "monofasico"])
     V_kV     = st.number_input("Tensión [kV]", value=20.0, step=0.1)
-    ID_tramo = st.text_input("ID Tramo")
+    ID_tramo = st.text_input("ID del tramo")
     Pn_MW    = st.number_input("Potencia Pn [MW]", value=1.0, step=0.1)
     L_m      = st.number_input("Longitud [m]", value=1000.0, step=1.0)
 
     st.subheader("Factores de corrección")
-    # Mostrar y seleccionar Ca
-    df_Ca = pd.DataFrame(factores_tabla['Ca'], columns=['Temperatura', 'Valor'])
-    st.table(df_Ca)
-    Ca_sel = st.selectbox("Selecciona Ca",
-        [f"{row['Temperatura']} → {row['Valor']}" for idx, row in df_Ca.iterrows()])
-    Ca = float(Ca_sel.split("→")[1])
 
-    df_Cd = pd.DataFrame(factores_tabla['Cd'], columns=['Agrupamiento', 'Valor'])
-    st.table(df_Cd)
-    Cd_sel = st.selectbox("Selecciona Cd",
-        [f"{row['Agrupamiento']} → {row['Valor']}" for idx, row in df_Cd.iterrows()])
-    Cd = float(Cd_sel.split("→")[1])
+    # Selección por categoría
+    temp_opts = [t for t,_ in factores_tabla['Ca']]
+    temp_sel = st.selectbox("Temperatura ambiente", temp_opts)
+    Ca = next(val for t,val in factores_tabla['Ca'] if t == temp_sel)
 
-    df_Ci = pd.DataFrame(factores_tabla['Ci'], columns=['Instalación', 'Valor'])
-    st.table(df_Ci)
-    Ci_sel = st.selectbox("Selecciona Ci",
-        [f"{row['Instalación']} → {row['Valor']}" for idx, row in df_Ci.iterrows()])
-    Ci = float(Ci_sel.split("→")[1])
+    agr_opts = [a for a,_ in factores_tabla['Cd']]
+    agr_sel = st.selectbox("Número de cables (agrupamiento)", agr_opts)
+    Cd = next(val for a,val in factores_tabla['Cd'] if a == agr_sel)
 
-    df_Cg = pd.DataFrame(factores_tabla['Cg'], columns=['Resistividad', 'Valor'])
-    st.table(df_Cg)
-    Cg_sel = st.selectbox("Selecciona Cg",
-        [f"{row['Resistividad']} → {row['Valor']}" for idx, row in df_Cg.iterrows()])
-    Cg = float(Cg_sel.split("→")[1])
+    ci_opts = [i for i,_ in factores_tabla['Ci']]
+    ci_sel = st.selectbox("Tipo de instalación interior", ci_opts)
+    Ci = next(val for i,val in factores_tabla['Ci'] if i == ci_sel)
+
+    cg_opts = [g for g,_ in factores_tabla['Cg']]
+    cg_sel = st.selectbox("Resistividad del terreno", cg_opts)
+    Cg = next(val for g,val in factores_tabla['Cg'] if g == cg_sel)
 
     calcular_sec = st.form_submit_button("Calcular sección mínima")
 
@@ -105,46 +97,46 @@ if calcular_sec:
           if tipo == "trifasico"
           else Pn_W / (V_kV * 1000 * cos_phi))
 
-    # Diccionario subterráneo según material
+    # Seleccionar tabla de cables
     data_dict = cable_data_sub_Al if material == "Al" else cable_data_sub_Cu
 
     # Sección mínima recomendada
-    rec = next((s for s in sorted(data_dict)
-               if data_dict[s]["Ia"] * k_total >= In), None)
+    rec = next((s for s in sorted(data_dict) if data_dict[s]["Ia"] * k_total >= In), None)
     rec = rec or max(data_dict)
 
-    # Guardar contexto
+    # Guardar en session_state
     st.session_state.rec       = rec
     st.session_state.data_dict = data_dict
     st.session_state.In        = In
     st.session_state.Pn_W      = Pn_W
     st.session_state.k_total   = k_total
+
     st.success(f"Sección mínima recomendada: {rec} mm²")
 
 # Paso 2: Selección de sección y cálculo final
 if 'rec' in st.session_state:
     with st.form("form_seccion"):
-        st.header("Paso 2: Selecciona sección")
-        rec = st.session_state.rec
+        st.header("Paso 2: Seleccionar sección")
+        rec       = st.session_state.rec
         data_dict = st.session_state.data_dict
-        opciones = [s for s in data_dict if s >= rec]
-        sec = st.selectbox("Sección (mm²)", opciones, index=0)
-        calcular_tramo = st.form_submit_button("Calcular tramo")
+        opciones  = [s for s in sorted(data_dict) if s >= rec]
+        sec       = st.selectbox("Sección (mm²)", opciones, index=0)
+        calcular_tramo = st.form_submit_button("Calcular tramo final")
 
     if calcular_tramo:
         Ia_corr = data_dict[sec]["Ia"] * st.session_state.k_total
         if Ia_corr < st.session_state.In:
-            st.error(f"In={st.session_state.In:.1f} A > Iac={Ia_corr:.1f} A. "
+            st.error(f"Corriente insuficiente: In={st.session_state.In:.1f} A > Iac={Ia_corr:.1f} A. "
                      "Seleccione sección ≥ recomendada.")
         else:
-            sin_phi = math.sqrt(1 - cos_phi ** 2)
+            sin_phi = math.sqrt(1 - cos_phi**2)
             Kd, Kl = (math.sqrt(3), 3) if tipo == "trifasico" else (2, 2)
             deltaU_pct = (Kd * st.session_state.In *
                           (data_dict[sec]["R"] * cos_phi + data_dict[sec]["X"] * sin_phi) *
                           (L_m / 1000)) / (V_kV * 1000) * 100
-            P_perd_W = Kl * st.session_state.In ** 2 * data_dict[sec]["R"] * (L_m / 1000)
-            Ppn_kW = P_perd_W / 1000
-            Pperd_pct = (P_perd_W / st.session_state.Pn_W) * 100
+            P_perd_W = Kl * st.session_state.In**2 * data_dict[sec]["R"] * (L_m / 1000)
+            Ppn_kW   = P_perd_W / 1000
+            Pperd_pct= (P_perd_W / st.session_state.Pn_W) * 100
 
             st.session_state.resultados.append({
                 "ID": ID_tramo,
