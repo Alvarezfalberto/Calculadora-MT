@@ -8,7 +8,7 @@
 # Copyright:   (c) AlbertoAlvarez 2025
 # Licence:     <your licence>
 #-------------------------------------------------------------------------------
-pip install streamlit
+python3 -m pip install streamlit
 import streamlit as st
 import math
 
