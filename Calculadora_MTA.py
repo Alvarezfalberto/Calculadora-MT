@@ -37,22 +37,8 @@ img_path = os.path.join(".devcontainer", f"{config_key}_{seccion_key}.png")
 
 # Mostrar la imagen correspondiente
 try:
-    st.image(img_path, caption=f"{config_text} - {seccion_text}", use_column_width="always")
+    st.image(img_path, caption=f"{config_text} - {seccion_text}", use_container_width="always")
 except Exception as e:
     st.warning(f"No se pudo cargar la imagen: {img_path}")
 
-st.info(
-    "Sube tus imágenes a la carpeta `.devcontainer` con los siguientes nombres:\n\n"
-    "simple_30kv_la280_dx.png\n"
-    "simple_30kv_la280_sx.png\n"
-    "simple_30kv_la380_sx.png\n"
-    "simple_30kv_la380_dx.png\n"
-    "simple_30kv_la455_sx.png\n"
-    "simple_30kv_la455_dx.png\n"
-    "doble_30kv_la280_dx.png\n"
-    "doble_30kv_la280_sx.png\n"
-    "doble_30kv_la380_sx.png\n"
-    "doble_30kv_la380_dx.png\n"
-    "doble_30kv_la455_sx.png\n"
-    "doble_30kv_la455_dx.png\n"
-)
+
