@@ -1,0 +1,67 @@
+import streamlit as st
+
+st.markdown('<h2 style="color:#67c1d3;">Calculadora de Líneas de Media Tensión Aéreas</h2>', unsafe_allow_html=True)
+
+config = st.selectbox(
+    "import streamlit as st
+import os
+
+st.markdown('<h2 style="color:#67c1d3;">Calculadora de Líneas de Media Tensión Aéreas</h2>', unsafe_allow_html=True)
+
+# Diccionario de opciones y nombres de archivo
+configuraciones = {
+    "Configuracion Simple Circuito": "simple",
+    "Configuración Doble Circuito": "doble"
+}
+secciones = [
+    "LA-280 dx", "LA-280 sx", "LA-380 sx", "LA-380 dx", "LA-455 sx", "LA-455 dx"
+]
+
+# Primer selectbox: configuración
+config = st.selectbox(
+    "Selecciona la configuración aérea de 30kV:",
+    list(configuraciones.keys())
+)
+
+if config:
+    # Segundo selectbox: sección
+    seccion = st.selectbox(
+        "Indica la sección de estudio",
+        secciones
+    )
+
+    if seccion:
+        # Generar el nombre base de archivo según selección
+        config_tag = configuraciones[config]
+        seccion_tag = seccion.lower().replace(" ", "_").replace("-", "").replace("dx", "dx").replace("sx", "sx")
+        
+        # Ajusta los nombres de archivo según convención que uses
+        img_filename = f"recursos/{config_tag}_{seccion_tag}_img.png"
+        tabla_filename = f"recursos/{config_tag}_{seccion_tag}_tabla.png"
+
+        # Verifica y muestra la imagen y tabla
+        if os.path.exists(img_filename):
+            st.image(img_filename, caption=f"{config} - {seccion}")
+        else:
+            st.warning(f"Imagen no encontrada: {img_filename}")
+
+        if os.path.exists(tabla_filename):
+            st.image(tabla_filename, caption=f"Tabla {config} - {seccion}")
+        else:
+            st.warning(f"Tabla no encontrada: {tabla_filename}")",
+    [
+        "",
+        "Configuración Simple Circuito",
+        "Configuración Doble Circuito",
+        # Agrega más configuraciones si lo deseas
+    ]
+)
+
+if config == "Configuración tipo A":
+    st.image("recursos/config_a.png", caption="Configuración tipo A")
+elif config == "Configuración tipo B":
+    st.image("recursos/config_b.png", caption="Configuración tipo B")
+elif config == "Configuración tipo C":
+    st.image("recursos/config_c.png", caption="Configuración tipo C")
+elif config == "":
+    st.info("Selecciona una configuración para ver la imagen.")
