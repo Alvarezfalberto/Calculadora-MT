@@ -51,114 +51,117 @@ factores_tabla = {
            ('150 Ω·m', 0.85), ('200 Ω·m', 0.80)],
 }
 
-# Inicializar resultados
-if 'resultados' not in st.session_state:
-    st.session_state.resultados = []
+def main():
+    # Inicializar resultados
+    if 'resultados' not in st.session_state:
+        st.session_state.resultados = []
 
-# Título principal en azul
-st.markdown('<h1 style="color:#67c1d3;">Calculadora de Líneas de Media Tensión subterráneas</h1>', unsafe_allow_html=True)
+    # Título principal en azul
+    st.markdown('<h1 style="color:#67c1d3;">Calculadora de Líneas de Media Tensión subterráneas</h1>', unsafe_allow_html=True)
 
-# Paso 1: Introducir datos y calcular sección mínima
-with st.form("form_datos"):
-    # Paso 1 en amarillo
-    st.markdown('<h2 style="color:#ece75b;">Paso 1: Datos del tramo</h2>', unsafe_allow_html=True)
-    material = st.selectbox("Material conductor", ["Al", "Cu"])
-    cos_phi  = st.number_input("Factor de potencia (cos φ)", min_value=0.0, max_value=1.0, value=0.9, step=0.01)
-    tipo     = st.selectbox("Sistema", ["trifasico", "monofasico"])
-    V_kV     = st.number_input("Tensión [kV]", value=20.0, step=0.1)
-    ID_tramo = st.text_input("ID del tramo")
-    Pn_MW    = st.number_input("Potencia Pn [MW]", value=1.0, step=0.1)
-    L_m      = st.number_input("Longitud [m]", value=1000.0, step=1.0)
+    # Paso 1: Introducir datos y calcular sección mínima
+    with st.form("form_datos"):
+        # Paso 1 en amarillo
+        st.markdown('<h2 style="color:#ece75b;">Paso 1: Datos del tramo</h2>', unsafe_allow_html=True)
+        material = st.selectbox("Material conductor", ["Al", "Cu"])
+        cos_phi  = st.number_input("Factor de potencia (cos φ)", min_value=0.0, max_value=1.0, value=0.9, step=0.01)
+        tipo     = st.selectbox("Sistema", ["trifasico", "monofasico"])
+        V_kV     = st.number_input("Tensión [kV]", value=20.0, step=0.1)
+        ID_tramo = st.text_input("ID del tramo")
+        Pn_MW    = st.number_input("Potencia Pn [MW]", value=1.0, step=0.1)
+        L_m      = st.number_input("Longitud [m]", value=1000.0, step=1.0)
 
-    # Factores de corrección en verde
-    st.markdown('<h3 style="color:#26a484;">Factores de corrección</h3>', unsafe_allow_html=True)
+        # Factores de corrección en verde
+        st.markdown('<h3 style="color:#26a484;">Factores de corrección</h3>', unsafe_allow_html=True)
 
-    # Selección por categoría
-    temp_opts = [t for t,_ in factores_tabla['Ca']]
-    temp_sel = st.selectbox("Temperatura ambiente", temp_opts)
-    Ca = next(val for t,val in factores_tabla['Ca'] if t == temp_sel)
+        # Selección por categoría
+        temp_opts = [t for t,_ in factores_tabla['Ca']]
+        temp_sel = st.selectbox("Temperatura ambiente", temp_opts)
+        Ca = next(val for t,val in factores_tabla['Ca'] if t == temp_sel)
 
-    agr_opts = [a for a,_ in factores_tabla['Cd']]
-    agr_sel = st.selectbox("Número de cables (agrupamiento)", agr_opts)
-    Cd = next(val for a,val in factores_tabla['Cd'] if a == agr_sel)
+        agr_opts = [a for a,_ in factores_tabla['Cd']]
+        agr_sel = st.selectbox("Número de cables (agrupamiento)", agr_opts)
+        Cd = next(val for a,val in factores_tabla['Cd'] if a == agr_sel)
 
-    ci_opts = [i for i,_ in factores_tabla['Ci']]
-    ci_sel = st.selectbox("Tipo de instalación interior", ci_opts)
-    Ci = next(val for i,val in factores_tabla['Ci'] if i == ci_sel)
+        ci_opts = [i for i,_ in factores_tabla['Ci']]
+        ci_sel = st.selectbox("Tipo de instalación interior", ci_opts)
+        Ci = next(val for i,val in factores_tabla['Ci'] if i == ci_sel)
 
-    cg_opts = [g for g,_ in factores_tabla['Cg']]
-    cg_sel = st.selectbox("Resistividad del terreno", cg_opts)
-    Cg = next(val for g,val in factores_tabla['Cg'] if g == cg_sel)
+        cg_opts = [g for g,_ in factores_tabla['Cg']]
+        cg_sel = st.selectbox("Resistividad del terreno", cg_opts)
+        Cg = next(val for g,val in factores_tabla['Cg'] if g == cg_sel)
 
-    calcular_sec = st.form_submit_button("Calcular sección mínima")
+        calcular_sec = st.form_submit_button("Calcular sección mínima")
 
-if calcular_sec:
-    k_total = Ca * Cd * Ci * Cg
-    Pn_W    = Pn_MW * 1e6
-    In = (Pn_W / (math.sqrt(3) * V_kV * 1000 * cos_phi)
-          if tipo == "trifasico"
-          else Pn_W / (V_kV * 1000 * cos_phi))
+    if calcular_sec:
+        k_total = Ca * Cd * Ci * Cg
+        Pn_W    = Pn_MW * 1e6
+        In = (Pn_W / (math.sqrt(3) * V_kV * 1000 * cos_phi)
+              if tipo == "trifasico"
+              else Pn_W / (V_kV * 1000 * cos_phi))
 
-    # Seleccionar tabla de cables
-    data_dict = cable_data_sub_Al if material == "Al" else cable_data_sub_Cu
+        # Seleccionar tabla de cables
+        data_dict = cable_data_sub_Al if material == "Al" else cable_data_sub_Cu
 
-    # Sección mínima recomendada
-    rec = next((s for s in sorted(data_dict) if data_dict[s]["Ia"] * k_total >= In), None)
-    rec = rec or max(data_dict)
+        # Sección mínima recomendada
+        rec = next((s for s in sorted(data_dict) if data_dict[s]["Ia"] * k_total >= In), None)
+        rec = rec or max(data_dict)
 
-    # Guardar en session_state
-    st.session_state.rec       = rec
-    st.session_state.data_dict = data_dict
-    st.session_state.In        = In
-    st.session_state.Pn_W      = Pn_W
-    st.session_state.k_total   = k_total
+        # Guardar en session_state
+        st.session_state.rec       = rec
+        st.session_state.data_dict = data_dict
+        st.session_state.In        = In
+        st.session_state.Pn_W      = Pn_W
+        st.session_state.k_total   = k_total
 
-    st.success(f"Sección mínima recomendada: {rec} mm²")
+        st.success(f"Sección mínima recomendada: {rec} mm²")
 
-# Paso 2: Selección de sección y cálculo final
-if 'rec' in st.session_state:
-    with st.form("form_seccion"):
-        # Paso 2 en azul
-        st.markdown('<h2 style="color:#67c1d3;">Paso 2: Seleccionar sección</h2>', unsafe_allow_html=True)
-        rec       = st.session_state.rec
-        data_dict = st.session_state.data_dict
-        opciones  = [s for s in sorted(data_dict) if s >= rec]
-        sec       = st.selectbox("Sección (mm²)", opciones, index=0)
-        calcular_tramo = st.form_submit_button("Calcular tramo final")
+    # Paso 2: Selección de sección y cálculo final
+    if 'rec' in st.session_state:
+        with st.form("form_seccion"):
+            # Paso 2 en azul
+            st.markdown('<h2 style="color:#67c1d3;">Paso 2: Seleccionar sección</h2>', unsafe_allow_html=True)
+            rec       = st.session_state.rec
+            data_dict = st.session_state.data_dict
+            opciones  = [s for s in sorted(data_dict) if s >= rec]
+            sec       = st.selectbox("Sección (mm²)", opciones, index=0)
+            calcular_tramo = st.form_submit_button("Calcular tramo final")
 
-    if calcular_tramo:
-        Ia_corr = data_dict[sec]["Ia"] * st.session_state.k_total
-        if Ia_corr < st.session_state.In:
-            st.error(f"Corriente insuficiente: In={st.session_state.In:.1f} A > Iac={Ia_corr:.1f} A. "
-                     "Seleccione sección ≥ recomendada.")
-        else:
-            sin_phi = math.sqrt(1 - cos_phi**2)
-            Kd, Kl = (math.sqrt(3), 3) if tipo == "trifasico" else (2, 2)
-            deltaU_pct = (Kd * st.session_state.In *
-                          (data_dict[sec]["R"] * cos_phi + data_dict[sec]["X"] * sin_phi) *
-                          (L_m / 1000)) / (V_kV * 1000) * 100
-            P_perd_W = Kl * st.session_state.In**2 * data_dict[sec]["R"] * (L_m / 1000)
-            Ppn_kW   = P_perd_W / 1000
-            Pperd_pct= (P_perd_W / st.session_state.Pn_W) * 100
+        if calcular_tramo:
+            Ia_corr = data_dict[sec]["Ia"] * st.session_state.k_total
+            if Ia_corr < st.session_state.In:
+                st.error(f"Corriente insuficiente: In={st.session_state.In:.1f} A > Iac={Ia_corr:.1f} A. "
+                         "Seleccione sección ≥ recomendada.")
+            else:
+                sin_phi = math.sqrt(1 - cos_phi**2)
+                Kd, Kl = (math.sqrt(3), 3) if tipo == "trifasico" else (2, 2)
+                deltaU_pct = (Kd * st.session_state.In *
+                              (data_dict[sec]["R"] * cos_phi + data_dict[sec]["X"] * sin_phi) *
+                              (L_m / 1000)) / (V_kV * 1000) * 100
+                P_perd_W = Kl * st.session_state.In**2 * data_dict[sec]["R"] * (L_m / 1000)
+                Ppn_kW   = P_perd_W / 1000
+                Pperd_pct= (P_perd_W / st.session_state.Pn_W) * 100
 
-            st.session_state.resultados.append({
-                "ID": ID_tramo,
-                "Sección (mm²)": sec,
-                "In (A)": f"{st.session_state.In:.1f}",
-                "Iac (A)": f"{Ia_corr:.1f}",
-                "ΔU (%)": f"{deltaU_pct:.3f}",
-                "Pérdida (W)": f"{P_perd_W:.0f}",
-                "Ppn (kW)": f"{Ppn_kW:.2f}",
-                "Pperd (%)": f"{Pperd_pct:.3f}"
-            })
-            del st.session_state['rec']
+                st.session_state.resultados.append({
+                    "ID": ID_tramo,
+                    "Sección (mm²)": sec,
+                    "In (A)": f"{st.session_state.In:.1f}",
+                    "Iac (A)": f"{Ia_corr:.1f}",
+                    "ΔU (%)": f"{deltaU_pct:.3f}",
+                    "Pérdida (W)": f"{P_perd_W:.0f}",
+                    "Ppn (kW)": f"{Ppn_kW:.2f}",
+                    "Pperd (%)": f"{Pperd_pct:.3f}"
+                })
+                del st.session_state['rec']
 
-# Mostrar resultados
-if st.session_state.resultados:
-    # Resultados en amarillo
-    st.markdown('<h3 style="color:#ece75b;">Resultados por tramo</h3>', unsafe_allow_html=True)
-    st.table(st.session_state.resultados)
+    # Mostrar resultados
+    if st.session_state.resultados:
+        # Resultados en amarillo
+        st.markdown('<h3 style="color:#ece75b;">Resultados por tramo</h3>', unsafe_allow_html=True)
+        st.table(st.session_state.resultados)
 
+if __name__ == "__main__":
+    main()
 
 
 
