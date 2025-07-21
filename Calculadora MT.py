@@ -55,21 +55,23 @@ factores_tabla = {
 if 'resultados' not in st.session_state:
     st.session_state.resultados = []
 
-st.title("Calculadora de Líneas de Media Tensión subterráneas")
+# Título principal en azul
+st.markdown('<h1 style="color:#67c1d3;">Calculadora de Líneas de Media Tensión subterráneas</h1>', unsafe_allow_html=True)
 
 # Paso 1: Introducir datos y calcular sección mínima
 with st.form("form_datos"):
-    st.header("Paso 1: Datos del tramo")
+    # Paso 1 en amarillo
+    st.markdown('<h2 style="color:#ece75b;">Paso 1: Datos del tramo</h2>', unsafe_allow_html=True)
     material = st.selectbox("Material conductor", ["Al", "Cu"])
-    cos_phi  = st.number_input("Factor de potencia (cos φ)", min_value=0.0, max_value=1.0,
-                               value=0.9, step=0.01)
+    cos_phi  = st.number_input("Factor de potencia (cos φ)", min_value=0.0, max_value=1.0, value=0.9, step=0.01)
     tipo     = st.selectbox("Sistema", ["trifasico", "monofasico"])
     V_kV     = st.number_input("Tensión [kV]", value=20.0, step=0.1)
     ID_tramo = st.text_input("ID del tramo")
     Pn_MW    = st.number_input("Potencia Pn [MW]", value=1.0, step=0.1)
     L_m      = st.number_input("Longitud [m]", value=1000.0, step=1.0)
 
-    st.subheader("Factores de corrección")
+    # Factores de corrección en verde
+    st.markdown('<h3 style="color:#26a484;">Factores de corrección</h3>', unsafe_allow_html=True)
 
     # Selección por categoría
     temp_opts = [t for t,_ in factores_tabla['Ca']]
@@ -116,7 +118,8 @@ if calcular_sec:
 # Paso 2: Selección de sección y cálculo final
 if 'rec' in st.session_state:
     with st.form("form_seccion"):
-        st.header("Paso 2: Seleccionar sección")
+        # Paso 2 en azul
+        st.markdown('<h2 style="color:#67c1d3;">Paso 2: Seleccionar sección</h2>', unsafe_allow_html=True)
         rec       = st.session_state.rec
         data_dict = st.session_state.data_dict
         opciones  = [s for s in sorted(data_dict) if s >= rec]
@@ -152,7 +155,8 @@ if 'rec' in st.session_state:
 
 # Mostrar resultados
 if st.session_state.resultados:
-    st.subheader("Resultados por tramo")
+    # Resultados en amarillo
+    st.markdown('<h3 style="color:#ece75b;">Resultados por tramo</h3>', unsafe_allow_html=True)
     st.table(st.session_state.resultados)
 
 
