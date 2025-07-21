@@ -1,33 +1,58 @@
 import streamlit as st
+import os
 
-# Define nombres de las imágenes para cada sección y configuración
-def get_image_names(config, seccion):
-    return [
-        f"{config}_seccion{seccion}_img1.png",
-        f"{config}_seccion{seccion}_img2.png"
-    ]
+# Diccionarios para asociar los textos a claves de archivo
+config_map = {
+    "Simple circuito a 30 kV": "simple_30kv",
+    "Doble circuito a 30 kV": "doble_30kv"
+}
+
+seccion_map = {
+    "LA-280 dx": "la280_dx",
+    "LA-280 sx": "la280_sx",
+    "LA-380 sx": "la380_sx",
+    "LA-380 dx": "la380_dx",
+    "LA-455 sx": "la455_sx",
+    "LA-455 dx": "la455_dx"
+}
 
 st.title("Calculadora MT Aéreo")
 
-configuracion = st.selectbox("Selecciona la configuración del circuito:", ["Simple", "Doble"])
-config_key = 'simple_circuito' if configuracion == "Simple" else 'doble_circuito'
+# Selección de configuración
+config_text = st.selectbox(
+    "Selecciona la configuración del circuito:",
+    list(config_map.keys())
+)
+config_key = config_map[config_text]
 
-# Supón que tienes 6 secciones para cada configuración
-seccion = st.selectbox("Selecciona la sección:", [f"Sección {i+1}" for i in range(6)])
-seccion_num = int(seccion.split()[-1])
+# Selección de sección
+seccion_text = st.selectbox(
+    "Selecciona la sección:",
+    list(seccion_map.keys())
+)
+seccion_key = seccion_map[seccion_text]
 
-st.subheader(f"{configuracion} circuito - {seccion}")
+# Ruta de la imagen
+img_path = os.path.join(".devcontainer", f"{config_key}_{seccion_key}.png")
 
-# Mostrar las dos imágenes correspondientes
-img_names = get_image_names(config_key, seccion_num)
-cols = st.columns(2)
-for i, img_name in enumerate(img_names):
-    try:
-        cols[i].image(img_name, caption=img_name, use_column_width="always")
-    except Exception as e:
-        cols[i].warning(f"No se pudo cargar: {img_name}")
+# Mostrar la imagen correspondiente
+try:
+    st.image(img_path, caption=f"{config_text} - {seccion_text}", use_column_width="always")
+except Exception as e:
+    st.warning(f"No se pudo cargar la imagen: {img_path}")
 
-# Resto del código de la calculadora...
-# Aquí puedes poner el resto del código de cálculos y resultados
-
-st.info("Sube las imágenes al repositorio con los nombres indicados para visualizarlas aquí.")
+st.info(
+    "Sube tus imágenes a la carpeta `.devcontainer` con los siguientes nombres:\n\n"
+    "simple_30kv_la280_dx.png\n"
+    "simple_30kv_la280_sx.png\n"
+    "simple_30kv_la380_sx.png\n"
+    "simple_30kv_la380_dx.png\n"
+    "simple_30kv_la455_sx.png\n"
+    "simple_30kv_la455_dx.png\n"
+    "doble_30kv_la280_dx.png\n"
+    "doble_30kv_la280_sx.png\n"
+    "doble_30kv_la380_sx.png\n"
+    "doble_30kv_la380_dx.png\n"
+    "doble_30kv_la455_sx.png\n"
+    "doble_30kv_la455_dx.png\n"
+)
