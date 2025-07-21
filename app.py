@@ -13,7 +13,7 @@ opcion = st.selectbox(
 if opcion == "Tramo aéreo":
     modulo_nombre = "Calculadora_MTA"
 else:
-    modulo_nombre = "calculadoraMT"
+    modulo_nombre = "CalculadoraMT"
 
 try:
     modulo = importlib.import_module(modulo_nombre)
