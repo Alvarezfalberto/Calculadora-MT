@@ -10,6 +10,6 @@ opcion = st.selectbox(
 if opcion == "Subterráneo":
     import CalculadoraMT
 elif opcion == "Aéreo":
-    import calculadora_mt_aereo
+    import Calculadora_MTA
 else:
     st.info("Por favor selecciona una opción para continuar.")
