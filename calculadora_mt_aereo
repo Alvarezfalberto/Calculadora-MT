@@ -1,9 +1,4 @@
 import streamlit as st
-
-st.markdown('<h2 style="color:#67c1d3;">Calculadora de Líneas de Media Tensión Aéreas</h2>', unsafe_allow_html=True)
-
-config = st.selectbox(
-    "import streamlit as st
 import os
 
 st.markdown('<h2 style="color:#67c1d3;">Calculadora de Líneas de Media Tensión Aéreas</h2>', unsafe_allow_html=True)
@@ -48,20 +43,4 @@ if config:
         if os.path.exists(tabla_filename):
             st.image(tabla_filename, caption=f"Tabla {config} - {seccion}")
         else:
-            st.warning(f"Tabla no encontrada: {tabla_filename}")",
-    [
-        "",
-        "Configuración Simple Circuito",
-        "Configuración Doble Circuito",
-        # Agrega más configuraciones si lo deseas
-    ]
-)
-
-if config == "Configuración tipo A":
-    st.image("recursos/config_a.png", caption="Configuración tipo A")
-elif config == "Configuración tipo B":
-    st.image("recursos/config_b.png", caption="Configuración tipo B")
-elif config == "Configuración tipo C":
-    st.image("recursos/config_c.png", caption="Configuración tipo C")
-elif config == "":
-    st.info("Selecciona una configuración para ver la imagen.")
+            st.warning(f"Tabla no encontrada: {tabla_filename}")
