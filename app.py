@@ -8,7 +8,7 @@ opcion = st.selectbox(
 )
 
 if opcion == "Subterráneo":
-    import calculadora_mt_sub
+    import Calculadora MT
 elif opcion == "Aéreo":
     import calculadora_mt_aereo
 else:
